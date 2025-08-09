@@ -1,0 +1,40 @@
+#!/bin/bash
+# This script fetches data for a list of Pokémon from the API and saves each
+# response to a separate JSON file. It includes a delay to prevent rate-limiting.
+
+# Define the list of Pokémon to fetch.
+pokemon_list=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+
+# Define the base URL for the Pokémon API.
+BASE_API_URL="https://pokeapi.co/api/v2/pokemon/"
+
+# Define the delay between requests in seconds.
+DELAY_SECONDS=2
+
+# Loop through each Pokémon in the list.
+for pokemon_name in "${pokemon_list[@]}"; do
+  # Construct the full API URL and output filename for the current Pokémon.
+  API_URL="${BASE_API_URL}${pokemon_name}"
+  OUTPUT_FILE="${pokemon_name}.json"
+  
+  echo "Fetching data for $pokemon_name..."
+
+  # Make the API request using curl and save the output to a file.
+  # The --silent flag prevents curl from showing a progress meter.
+  # The --show-error flag ensures curl prints a message on stderr if it fails.
+  curl --silent --show-error "$API_URL" -o "$OUTPUT_FILE"
+  
+  # Check the exit status of the last command (curl).
+  if [ $? -eq 0 ]; then
+    echo "Success! Data for $pokemon_name saved to $OUTPUT_FILE."
+  else
+    # If curl failed, log the error message to errors.txt.
+    echo "[$(date)]: Failed to retrieve data for $pokemon_name. Check network connection or API URL." >> errors.txt
+  fi
+
+  # Add a delay between requests to respect API rate limits.
+  echo "Waiting $DELAY_SECONDS seconds before next request..."
+  sleep $DELAY_SECONDS
+done
+
+echo "Script finished."
