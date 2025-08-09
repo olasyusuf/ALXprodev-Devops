@@ -1,0 +1,54 @@
+#!/bin/bash
+# This script fetches data for a list of Pokémon from the API in parallel,
+# saving each response to a separate JSON file. 
+
+# Define the list of Pokémon to fetch.
+pokemon_list=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+
+# Define the base URL for the Pokémon API.
+BASE_API_URL="https://pokeapi.co/api/v2/pokemon/"
+
+# Define the output directory and create it if it doesn't exist.
+OUTPUT_DIR="pokemon_data"
+mkdir -p "$OUTPUT_DIR"
+
+# Define the error log file.
+ERROR_LOG="errors.log"
+
+# Function to fetch data for a single Pokémon.
+# This function is designed to be run in the background.
+fetch_pokemon_data() {
+  local pokemon_name=$1
+  local api_url="${BASE_API_URL}${pokemon_name}"
+  local output_file="$OUTPUT_DIR/${pokemon_name}.json"
+
+  echo "Starting fetch for $pokemon_name..."
+
+  # Make the API request using curl.
+  # The --silent flag prevents curl from showing a progress meter.
+  # The --fail-with-body flag ensures curl returns an error code on HTTP failure.
+  # The output is redirected to the file.
+  curl --silent --fail-with-body "$api_url" -o "$output_file" 2>> "$ERROR_LOG"
+  
+  if [ $? -eq 0 ]; then
+    echo "Success: Data for $pokemon_name saved to $output_file."
+  else
+    # If curl failed, an error message is already logged to errors.txt by the 2>> redirection.
+    echo "Failed to fetch data for $pokemon_name. See $ERROR_LOG for details."
+  fi
+}
+
+# --- Main Script Execution ---
+
+# Loop through the list of Pokémon and start each fetch in the background.
+for pokemon in "${pokemon_list[@]}"; do
+  # & runs the function as a background process.
+  fetch_pokemon_data "$pokemon" &
+done
+
+# Wait for all background jobs to complete.
+# The 'wait' command ensures the script doesn't exit until all
+# the parallel 'curl' commands have finished.
+wait
+
+echo "All parallel Pokémon fetches have completed."
