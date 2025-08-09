@@ -8,6 +8,13 @@ pokemon_list=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 # Define the base URL for the Pokémon API.
 BASE_API_URL="https://pokeapi.co/api/v2/pokemon/"
 
+# Create directory to store JSON files
+OUTPUT_DIR="pokemon_data"
+mkdir -p "$OUTPUT_DIR"
+
+# Set error files
+ERROR_FILE="errors.txt"
+
 # Define the delay between requests in seconds.
 DELAY_SECONDS=2
 
@@ -15,7 +22,7 @@ DELAY_SECONDS=2
 for pokemon_name in "${pokemon_list[@]}"; do
   # Construct the full API URL and output filename for the current Pokémon.
   API_URL="${BASE_API_URL}${pokemon_name}"
-  OUTPUT_FILE="${pokemon_name}.json"
+  OUTPUT_FILE="$OUTPUT_DIR/${pokemon_name}.json"
   
   echo "Fetching data for $pokemon_name..."
 
@@ -29,7 +36,7 @@ for pokemon_name in "${pokemon_list[@]}"; do
     echo "Success! Data for $pokemon_name saved to $OUTPUT_FILE."
   else
     # If curl failed, log the error message to errors.txt.
-    echo "[$(date)]: Failed to retrieve data for $pokemon_name. Check network connection or API URL." >> errors.txt
+    echo "[$(date)]: Failed to retrieve data for $pokemon_name. Check network connection or API URL." >> "$ERROR_FILE"
   fi
 
   # Add a delay between requests to respect API rate limits.
