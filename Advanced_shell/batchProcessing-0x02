@@ -15,6 +15,9 @@ mkdir -p "$OUTPUT_DIR"
 # Set error files
 ERROR_FILE="errors.txt"
 
+# log errors
+ERROR_LOG="errors.log"
+
 # Define the delay between requests in seconds.
 DELAY_SECONDS=2
 
@@ -23,25 +26,42 @@ for pokemon_name in "${pokemon_list[@]}"; do
   # Construct the full API URL and output filename for the current Pokémon.
   API_URL="${BASE_API_URL}${pokemon_name}"
   OUTPUT_FILE="$OUTPUT_DIR/${pokemon_name}.json"
+  count=1
+  limits=3
+  success=false
   
   echo "Fetching data for $pokemon_name..."
 
-  # Make the API request using curl and save the output to a file.
-  # The --silent flag prevents curl from showing a progress meter.
-  # The --show-error flag ensures curl prints a message on stderr if it fails.
-  curl --silent --show-error "$API_URL" -o "$OUTPUT_FILE"
-  
-  # Check the exit status of the last command (curl).
-  if [ $? -eq 0 ]; then
-    echo "Success! Data for $pokemon_name saved to $OUTPUT_FILE."
-  else
-    # If curl failed, log the error message to errors.txt.
-    echo "[$(date)]: Failed to retrieve data for $pokemon_name. Check network connection or API URL." >> "$ERROR_FILE"
+  while [ $count -le $limits ]; do
+    # Make the API request using curl and save the output to a file.
+    # The --silent flag prevents curl from showing a progress meter.
+    # The --show-error flag ensures curl prints a message on stderr if it fails.
+    curl --silent --show-error "$API_URL" -o "$OUTPUT_FILE"
+    
+    # Check the exit status of the last command (curl).
+    if [ $? -eq 0 ]; then
+        echo "Success! Data for $pokemon_name saved to $OUTPUT_FILE."
+        success=true
+        break
+    else
+        # If curl failed, log the error message to errors.txt.
+        echo "Attempt $count failed for $pokemon_name. Retrying..."
+        sleep 1
+        ((count++))
+    fi
+
+    # Add a delay between requests to respect API rate limits.
+    echo "Waiting $DELAY_SECONDS second(s) before next request..."
+    sleep $DELAY_SECONDS
+  done
+
+  # Log error if all 3 attempts fail
+  if [ "$success" = false ]; then
+    echo "Failed to fetch data for $pokemon_name after ${limits} attempts." >> "$ERROR_LOG"
   fi
 
-  # Add a delay between requests to respect API rate limits.
-  echo "Waiting $DELAY_SECONDS seconds before next request..."
-  sleep $DELAY_SECONDS
+  # Delay to avoid rate-limiting
+  sleep 1
 done
 
 echo "Script finished."
